@@ -30,6 +30,11 @@ export interface Answer {
 	isOther: boolean;
 }
 
+export interface AskUserResult {
+	answers: readonly Answer[];
+	cancelled: boolean;
+}
+
 export interface NormalizedQuestion extends QuestionInput {
 	allowOther: boolean;
 	initialOptionIndex: number;

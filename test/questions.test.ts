@@ -1,7 +1,24 @@
 import { strict as assert } from "node:assert";
 import test from "node:test";
 import { normalizeQuestions } from "../src/questions.js";
+import { formatAskUserResult } from "../src/results.js";
 import { createQuestionnaireState, transitionQuestionnaire } from "../src/questionnaire.js";
+
+test("formats completed answers for the agent", () => {
+	assert.equal(
+		formatAskUserResult({
+			answers: [
+				{ questionId: "scope", value: "repo", label: "Repository", note: "include docs", isOther: false },
+			],
+			cancelled: false,
+		}),
+		"scope: Repository (value: repo; note: include docs)",
+	);
+});
+
+test("formats cancellation without answers", () => {
+	assert.equal(formatAskUserResult({ answers: [], cancelled: true }), "User cancelled the questionnaire.");
+});
 
 test("highlights the recommended option initially", () => {
 	const questions = normalizeQuestions({
