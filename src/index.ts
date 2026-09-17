@@ -2,6 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { AskUserInputSchema, normalizeQuestions, type AskUserResult } from "./questions.js";
 import { QuestionnaireOverlay } from "./questionnaire-overlay.js";
+import { askUserOverRpc } from "./rpc.js";
 import { formatAskUserResult } from "./results.js";
 
 export default function piQuestions(pi: ExtensionAPI): void {
@@ -20,9 +21,16 @@ export default function piQuestions(pi: ExtensionAPI): void {
 
 		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 			const questions = normalizeQuestions(params);
+			if (ctx.mode === "rpc") {
+				const result = await askUserOverRpc(questions, ctx);
+				return {
+					content: [{ type: "text", text: formatAskUserResult(result) }],
+					details: result,
+				};
+			}
 			if (ctx.mode !== "tui") {
 				return {
-					content: [{ type: "text", text: "ask_user requires interactive TUI mode" }],
+					content: [{ type: "text", text: "ask_user requires an interactive UI" }],
 					details: { answers: [], cancelled: true },
 				};
 			}
