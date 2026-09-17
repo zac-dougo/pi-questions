@@ -22,6 +22,14 @@ export type AskUserInput = Static<typeof AskUserInputSchema>;
 export type QuestionInput = Static<typeof QuestionSchema>;
 export type OptionInput = Static<typeof OptionSchema>;
 
+export interface Answer {
+	questionId: string;
+	value: string;
+	label: string;
+	note?: string;
+	isOther: boolean;
+}
+
 export interface NormalizedQuestion extends QuestionInput {
 	allowOther: boolean;
 	initialOptionIndex: number;
