@@ -16,9 +16,7 @@ The first version targets Pi's interactive TUI mode. It should feel like one con
 
 - Persistent question drafts across Pi restarts.
 - Branching questions whose later questions depend on earlier answers.
-- Editing an earlier question after moving forward.
 - Mouse-specific behavior.
-- A second UI protocol for RPC clients.
 - Automatic extraction of questions from agent text.
 
 ## User experience
@@ -40,13 +38,15 @@ The overlay stays open until the user completes all questions or cancels it.
 ### Answering a question
 
 - `Up` and `Down` move through the choices.
+- The recommended choice is highlighted initially. If no choice is recommended, the first choice is highlighted.
 - `Enter` selects the highlighted choice and moves to the next question.
-- `Tab` while a normal choice is highlighted opens an inline note field for that choice. The choice remains selected.
+- `Tab` while a preset choice is highlighted opens an inline note field for that choice. The choice remains selected.
 - In note mode, printable keys edit the note, `Backspace` removes text, and `Left`/`Right` move the cursor.
 - `Enter` in note mode saves the note and moves to the next question.
 - `Escape` in note mode closes note mode without saving the current edit.
 - `Other...` enters free-text mode. `Enter` saves the written answer and moves to the next question.
 - `Escape` in free-text mode returns to the choices without saving.
+- `Left` from the choices returns to the previous question when one exists. The previous answer is restored and can be changed.
 - `Escape` from the choices cancels the complete questionnaire.
 
 A note is optional. A free-text `Other...` answer must contain at least one non-whitespace character before it can be submitted.
@@ -55,9 +55,9 @@ After the last question is answered, the overlay closes and the tool returns eve
 
 ### Multiple questions
 
-Questions are shown one at a time. The next question appears immediately after the current answer is submitted. The user cannot jump ahead or go back in v1. The progress indicator makes the remaining work visible.
+Questions are shown one at a time. The next question appears immediately after the current answer is submitted. The user can press `Left` to revisit an earlier question. Revisiting a question restores its previous answer, including its note or free-text value. Submitting it replaces that answer and resumes at the following question.
 
-If the user cancels, the tool returns the answers already submitted plus a cancellation flag. The agent can decide whether to continue, ask again, or stop.
+The progress indicator makes the remaining work visible. If the user cancels, the tool discards all answers and returns only a cancellation flag. The agent can decide whether to continue, ask again, or stop.
 
 ## Tool contract
 
@@ -81,6 +81,7 @@ interface Option {
   value: string;
   label: string;
   description?: string;
+  recommended?: boolean;
 }
 ```
 
@@ -90,6 +91,7 @@ Requirements:
 - `prompt` is the question displayed to the user.
 - `value` is the stable value sent to the agent. `label` is display text.
 - `description` is optional supporting text.
+- `recommended` marks the choice the agent recommends. The UI highlights it initially. At most one option may be recommended.
 - `options` must contain at least one option.
 - `allowOther` defaults to `true`. When false, the UI does not show `Other...`.
 - An empty question list is invalid.
@@ -111,7 +113,7 @@ interface Answer {
 }
 ```
 
-For an `Other...` answer, `value` and `label` contain the user's text and `isOther` is `true`. For a preset choice, `value` and `label` come from the selected option and `isOther` is `false`. `note` is present only when the user entered non-whitespace note text.
+For an `Other...` answer, `value` and `label` contain the user's text and `isOther` is `true`. For a preset choice, `value` and `label` come from the selected option and `isOther` is `false`. `note` is present only when the user entered non-whitespace note text. A normal completed result contains one answer per question in input order.
 
 The tool result sent to the agent should be concise but include the question id, selected value, and note when present. The structured result belongs in `details` so the renderer and session restoration can use it.
 
@@ -126,15 +128,16 @@ choices
   ├─ Enter on preset ──> save answer ──> next question or done
   ├─ Tab on preset ────> note
   ├─ Enter on Other ───> free text
+  ├─ Left ──────────────> previous question
   └─ Escape ───────────> cancelled
 
 note
   ├─ Enter ─────────────> save note and answer ──> next question or done
-  └─ Escape ───────────> choices
+  └─ Escape ───────────> choices without saving
 
 free text
   ├─ Enter with text ──> save answer ──> next question or done
-  └─ Escape ───────────> choices
+  └─ Escape ───────────> choices without saving
 ```
 
 Use a small custom component around Pi's existing input primitives where they fit. The component must:
@@ -150,8 +153,8 @@ Suggested overlay defaults are a width of 60 columns, a maximum height of 80% of
 ## Modes and cancellation
 
 - TUI mode supports the full overlay and key behavior.
-- Print and JSON modes cannot ask a person. The tool returns an error result without pretending that an answer was selected.
-- RPC mode is not part of v1 because Pi's RPC UI protocol does not expose `ctx.ui.custom()`. A later version may provide a sequential combination of `select` and `input`, or define a client-side questionnaire protocol.
+- RPC mode means Pi's headless JSON mode, usually used by another program rather than a person typing directly in the terminal. It supports a degraded sequential flow using Pi's `select` and `input` dialogs. Preset choices and `Other...` work there; notes are collected with a follow-up text prompt because RPC has no custom overlay or Tab key event.
+- Print and JSON modes without UI cannot ask a person. The tool returns an error result without pretending that an answer was selected.
 - Aborting Pi while the tool is open must close the overlay and return cancellation rather than leave the tool promise pending.
 
 ## Agent-facing guidance
@@ -169,7 +172,7 @@ The tool call renderer shows the question count and prompts without dumping the 
 ✓ tests: run the full suite
 ```
 
-A cancelled result shows `Cancelled` and the submitted answers when there are any.
+A cancelled result shows `Cancelled` and no answers, because the tool discards answers when cancellation occurs.
 
 ## Acceptance criteria
 
@@ -178,20 +181,20 @@ A cancelled result shows `Cancelled` and the submitted answers when there are an
 3. Tab on a preset choice opens a note field, and the note is returned with that answer.
 4. `Other...` accepts a typed answer and returns it as `isOther: true`.
 5. A multi-question request shows exactly one question at a time and advances after each submitted answer.
-6. Escape cancels from choices and returns partial answers with `cancelled: true`.
-7. Escape from note or free-text mode returns to choices without saving the in-progress text.
-8. The UI remains within its overlay bounds and handles long prompts, descriptions, and narrow terminals.
-9. Invalid tool input produces a clear tool error and does not open the overlay.
-10. Non-TUI execution returns a clear unsupported-mode result.
-11. The final result is available both as concise agent-readable text and structured `details`.
+6. A recommended choice is initially highlighted; otherwise the first choice is highlighted.
+7. `Left` revisits the previous question and restores its answer for editing.
+8. Escape cancels and discards all answers, returning `cancelled: true` with an empty answer list.
+9. Escape from note or free-text mode returns to choices without saving the in-progress text.
+10. The UI remains within its overlay bounds and handles long prompts, descriptions, and narrow terminals.
+11. Invalid tool input produces a clear tool error and does not open the overlay.
+12. TUI mode supports the full flow and RPC mode has a documented degraded flow.
+13. The final result is available both as concise agent-readable text and structured `details`.
 
-## Open decisions
+## Settled decisions
 
-These need confirmation before implementation:
-
-1. Should `Other...` be enabled by default, or should the agent opt in with `allowOther: true`?
-2. Should `Tab` on a selected choice always enter note mode, or should a second `Tab` cycle to the next question when notes are not wanted?
-3. Should users be able to go back to earlier questions with `Shift+Tab` or a dedicated key?
-4. Should cancellation return partial answers to the agent, or discard them and return only `cancelled: true`?
-5. Should v1 support Pi RPC clients through a degraded `select`/`input` flow?
-6. What name should the tool and project use: `ask_user`, `questionnaire`, or another name?
+- The tool is named `ask_user`.
+- `Other...` is enabled by default and can be disabled per question with `allowOther: false`.
+- The agent can mark one option per question as `recommended: true`.
+- Users can revisit earlier questions with `Left`.
+- Cancellation discards submitted and in-progress answers.
+- RPC gets a degraded `select`/`input` implementation rather than the TUI overlay.
