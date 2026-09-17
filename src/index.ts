@@ -22,7 +22,7 @@ export default function piQuestions(pi: ExtensionAPI): void {
 		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 			const questions = normalizeQuestions(params);
 			if (ctx.mode === "rpc") {
-				const result = await askUserOverRpc(questions, ctx);
+				const result = await askUserOverRpc(questions, ctx.ui);
 				return {
 					content: [{ type: "text", text: formatAskUserResult(result) }],
 					details: result,
