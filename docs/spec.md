@@ -148,7 +148,7 @@ Use a small custom component around Pi's existing input primitives where they fi
 - handle narrow terminals without throwing; and
 - release all overlay state when it closes.
 
-Suggested overlay defaults are a width of 60 columns, a maximum height of 60% of the terminal, and a bottom-center anchor with enough bottom margin to clear the chat bar. The overlay must remain usable when the terminal is narrower than the preferred width.
+Suggested overlay defaults are full terminal width, a maximum height of 60% of the terminal, and a bottom-center anchor with enough bottom margin to clear the chat bar. The overlay must remain usable when the terminal is narrower than the preferred width.
 
 ## Modes and cancellation
 
