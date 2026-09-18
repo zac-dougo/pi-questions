@@ -1,0 +1,6 @@
+.github/
+docs/
+test/
+AGENTS.md
+.gitattributes
+tsconfig.json
