@@ -40,7 +40,12 @@ export default function piQuestions(pi: ExtensionAPI): void {
 					new QuestionnaireOverlay(questions, theme, done, () => tui.requestRender()),
 				{
 					overlay: true,
-					overlayOptions: { anchor: "center", width: 60, maxHeight: "80%" },
+					overlayOptions: {
+					anchor: "bottom-center",
+					width: "100%",
+					maxHeight: "60%",
+					margin: { bottom: 3 },
+				},
 				},
 			);
 			const resolved: AskUserResult = result ?? { answers: [], cancelled: true };
