@@ -1,4 +1,4 @@
-# pi-questions
+# pi-questions-tui
 
 A Pi extension for asking structured questions through a small, keyboard-friendly terminal UI.
 

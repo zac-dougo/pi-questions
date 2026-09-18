@@ -1,5 +1,5 @@
 {
-  "name": "pi-questions",
+  "name": "pi-questions-tui",
   "version": "0.1.0",
   "description": "Interactive question UI extension for Pi",
   "type": "module",
