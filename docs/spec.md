@@ -1,6 +1,6 @@
 # Pi questions spec
 
-Status: draft
+Status: implemented, pending manual placement QA
 
 ## Problem
 
@@ -23,7 +23,7 @@ The first version targets Pi's interactive TUI mode. It should feel like one con
 
 ### Opening
 
-The agent calls `ask_user` with one or more questions. Pi opens a centered, bounded overlay over the current terminal content. The overlay shows:
+The agent calls `ask_user` with one or more questions. Pi opens a bounded overlay anchored above the chat bar, immediately after the most recent agent message. The chat bar remains visible below it. The overlay shows:
 
 - a title such as `Agent question`;
 - progress, such as `Question 2 of 4`;
@@ -148,7 +148,7 @@ Use a small custom component around Pi's existing input primitives where they fi
 - handle narrow terminals without throwing; and
 - release all overlay state when it closes.
 
-Suggested overlay defaults are a width of 60 columns, a maximum height of 80% of the terminal, and a centered anchor. The overlay must remain usable when the terminal is narrower than the preferred width.
+Suggested overlay defaults are a width of 60 columns, a maximum height of 60% of the terminal, and a bottom-center anchor with enough bottom margin to clear the chat bar. The overlay must remain usable when the terminal is narrower than the preferred width.
 
 ## Modes and cancellation
 
@@ -185,10 +185,11 @@ A cancelled result shows `Cancelled` and no answers, because the tool discards a
 7. `Left` revisits the previous question and restores its answer for editing.
 8. Escape cancels and discards all answers, returning `cancelled: true` with an empty answer list.
 9. Escape from note or free-text mode returns to choices without saving the in-progress text.
-10. The UI remains within its overlay bounds and handles long prompts, descriptions, and narrow terminals.
-11. Invalid tool input produces a clear tool error and does not open the overlay.
-12. TUI mode supports the full flow and RPC mode has a documented degraded flow.
-13. The final result is available both as concise agent-readable text and structured `details`.
+10. The UI appears above the chat bar after the most recent agent message.
+11. The UI remains within its overlay bounds and handles long prompts, descriptions, and narrow terminals.
+12. Invalid tool input produces a clear tool error and does not open the overlay.
+13. TUI mode supports the full flow and RPC mode has a documented degraded flow.
+14. The final result is available both as concise agent-readable text and structured `details`.
 
 ## Settled decisions
 
