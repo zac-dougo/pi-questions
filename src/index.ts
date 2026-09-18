@@ -42,7 +42,7 @@ export default function piQuestions(pi: ExtensionAPI): void {
 					overlay: true,
 					overlayOptions: {
 					anchor: "bottom-center",
-					width: 60,
+					width: "100%",
 					maxHeight: "60%",
 					margin: { bottom: 3 },
 				},
